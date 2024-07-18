@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -28,7 +29,15 @@ func main() {
 
 		req := make([]byte, 1024)
 		conn.Read(req)
-		if !strings.HasPrefix(string(req), "GET / HTTP/1.1") {
+		if strings.HasPrefix(string(req), "GET /echo/") {
+			res := strings.Split(string(req), "/echo/")[1:]
+			res = strings.Split(res[0], " HTTP/1.1")
+			echo := res[0]
+			fmt.Println("RESPONSE: ", echo)
+			conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(echo)) + "\r\n\r\n" + echo))
+			conn.Close()
+			return
+		} else if !strings.HasPrefix(string(req), "GET / HTTP/1.1") {
 			conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 			conn.Close()
 			return
