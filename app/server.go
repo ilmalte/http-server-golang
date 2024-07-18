@@ -33,7 +33,6 @@ func main() {
 			res := strings.Split(string(req), "/echo/")[1:]
 			res = strings.Split(res[0], " HTTP/1.1")
 			echo := res[0]
-			fmt.Println("RESPONSE: ", echo)
 			conn.Write([]byte("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: " + strconv.Itoa(len(echo)) + "\r\n\r\n" + echo))
 			conn.Close()
 			return
