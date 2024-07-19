@@ -48,25 +48,55 @@ func handleConnection(conn net.Conn) {
 	conn.Write([]byte(response))
 }
 func getResponse(request HTTPRequest) string {
-	response := ""
-	if request.Method != "GET" {
-		response = fmt.Sprintf("%s\r\n\r\n", getStatus(405, "Method Not Allowed"))
-		return response
-	}
+	response := getEmptyResponseStr(405, "Method Not Allowed")
 	switch {
-	case request.Path == "/user-agent":
-		response = getResponseStr(request.UserAgent, "text/plain")
-	case strings.HasPrefix(request.Path, "/echo/"):
-		echo := strings.Split(string(request.Path), "/echo/")[1:][0]
-		response = getResponseStr(echo, "text/plain")
-	case strings.HasPrefix(request.Path, "/files/"):
-		response = getFileContent(request.Path)
-	case request.Path != "/":
-		response = fmt.Sprintf("%s\r\n\r\n", getStatus(404, "Not Found"))
+	case request.Method == "POST":
+		if strings.HasPrefix(request.Path, "/files/") {
+			response = postFileContent(request.Path, request.Body)
+		}
+	case request.Method == "GET":
+		switch {
+		case request.Path == "/user-agent":
+			response = getResponseStr(request.UserAgent, "text/plain")
+		case strings.HasPrefix(request.Path, "/echo/"):
+			echo := strings.Split(string(request.Path), "/echo/")[1:][0]
+			response = getResponseStr(echo, "text/plain")
+		case strings.HasPrefix(request.Path, "/files/"):
+			response = getFileContent(request.Path)
+		case request.Path != "/":
+			response = getEmptyResponseStr(404, "Not Found")
+		default:
+			response = getEmptyResponseStr(200, "OK")
+		}
 	default:
-		response = fmt.Sprintf("%s\r\n\r\n", getStatus(200, "OK"))
+		break
 	}
 	return response
+}
+func postFileContent(path string, content string) string {
+	err := error(nil)
+	directory := ""
+	fileName := strings.Split(string(path), "/files/")[1:][0]
+
+	if len(os.Args) > 1 {
+		directory = os.Args[2]
+		if directory == "" {
+			fmt.Println("No directory specified")
+		}
+		err = postFile(directory, fileName, content)
+	}
+	if err != nil {
+		return getEmptyResponseStr(500, "Internal Server Error")
+	}
+	return getEmptyResponseStr(201, "Created")
+}
+func postFile(directory string, fileName string, content string) error {
+	err := os.WriteFile(directory+fileName, []byte(content), 0755)
+	if err != nil {
+		fmt.Print("unable to write file: %w", err)
+		return err
+	}
+	return nil
 }
 func getFileContent(path string) string {
 	err := error(nil)
@@ -82,14 +112,14 @@ func getFileContent(path string) string {
 		file, err = getFile(directory, fileName)
 	}
 	if err != nil {
-		return fmt.Sprintf("%s\r\n\r\n", getStatus(500, "Internal Server Error"))
+		return getEmptyResponseStr(500, "Internal Server Error")
 	}
 	if file == nil {
-		return fmt.Sprintf("%s\r\n\r\n", getStatus(404, "Not Found"))
+		return getEmptyResponseStr(404, "Not Found")
 	}
 	fileContent, err := os.ReadFile(directory + file.Name())
 	if err != nil {
-		return fmt.Sprintf("%s\r\n\r\n", getStatus(500, "Internal Server Error"))
+		return getEmptyResponseStr(500, "Internal Server Error")
 	}
 	return getResponseStr(string(fileContent), "application/octet-stream")
 }
@@ -120,6 +150,9 @@ func getFile(directory string, fileName string) (fs.DirEntry, error) {
 }
 func getResponseStr(s string, t string) string {
 	return fmt.Sprintf("%s\r\nContent-Type: %s\r\nContent-Length: %d\r\n\r\n%s", getStatus(200, "OK"), t, len(s), s)
+}
+func getEmptyResponseStr(code int, message string) string {
+	return fmt.Sprintf("%s\r\n\r\n", getStatus(code, message))
 }
 func getStatus(code int, message string) string {
 	return fmt.Sprintf("HTTP/1.1 %d %s", code, message)
