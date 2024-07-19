@@ -49,7 +49,7 @@ func handleConnection(conn net.Conn) {
 func getResponse(request HTTPRequest) string {
 	response := ""
 	if request.Method != "GET" {
-		response = getStatus(405, "Method Not Allowed")
+		response = fmt.Sprintf("%s\r\n\r\n", getStatus(405, "Method Not Allowed"))
 		return response
 	}
 
@@ -60,9 +60,9 @@ func getResponse(request HTTPRequest) string {
 		echo := strings.Split(string(request.Path), "/echo/")[1:][0]
 		response = fmt.Sprintf("%s\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", getStatus(200, "OK"), len(echo), echo)
 	case request.Path != "/":
-		response = getStatus(404, "Not Found")
+		response = fmt.Sprintf("%s\r\n\r\n", getStatus(404, "Not Found"))
 	default:
-		response = getStatus(200, "OK")
+		response = fmt.Sprintf("%s\r\n\r\n", getStatus(200, "OK"))
 	}
 	return response
 }
