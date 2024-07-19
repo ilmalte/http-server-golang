@@ -171,7 +171,7 @@ func getHttpRequest(req []byte) HTTPRequest {
 		header := strings.Split(line, ": ")
 		headers[header[0]] = header[1]
 	}
-	body := reqLines[len(reqLines)-1]
+	body := strings.Trim(reqLines[len(reqLines)-1], "\r\n")[0:]
 	return HTTPRequest{
 		Method:    method,
 		Path:      path,
