@@ -60,8 +60,7 @@ func getResponse(request HTTPRequest) string {
 		echo := strings.Split(string(request.Path), "/echo/")[1:][0]
 		response = getResponseStr(echo, "text/plain")
 	case strings.HasPrefix(request.Path, "/files/"):
-		fileContent := getFileContent(request.Path)
-		response = getResponseStr(fileContent, "application/octet-stream")
+		response = getFileContent(request.Path)
 	case request.Path != "/":
 		response = fmt.Sprintf("%s\r\n\r\n", getStatus(404, "Not Found"))
 	default:
@@ -92,7 +91,7 @@ func getFileContent(path string) string {
 	if err != nil {
 		return fmt.Sprintf("%s\r\n\r\n", getStatus(500, "Internal Server Error"))
 	}
-	return string(fileContent)
+	return getResponseStr(string(fileContent), "application/octet-stream")
 }
 func getFile(directory string, fileName string) (fs.DirEntry, error) {
 	// Check if the specified directory exists
